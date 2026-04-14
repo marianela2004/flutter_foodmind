@@ -1,9 +1,16 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'add_product_screen.dart'; // 👈 IMPORTANTE
 
-class InventoryScreen extends StatelessWidget {
+class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
+
+  @override
+  State<InventoryScreen> createState() => _InventoryScreenState();
+}
+
+class _InventoryScreenState extends State<InventoryScreen> {
 
   // 🔥 Función para obtener datos de tu API
   Future<List> obtenerDespensa() async {
@@ -11,7 +18,6 @@ class InventoryScreen extends StatelessWidget {
       Uri.parse('https://yost.es/SM-IT/2025-26/1B/website/mvp/despensa.php'),
     );
 
-    // 👇 IMPORTANTE para ver errores en consola
     print("STATUS: ${response.statusCode}");
     print("BODY: ${response.body}");
 
@@ -26,6 +32,22 @@ class InventoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Inventario")),
+
+      // ➕ BOTÓN AÑADIR
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AddProductScreen(),
+            ),
+          );
+
+          // 🔄 refresca al volver
+          setState(() {});
+        },
+        child: const Icon(Icons.add),
+      ),
 
       body: FutureBuilder(
         future: obtenerDespensa(),
