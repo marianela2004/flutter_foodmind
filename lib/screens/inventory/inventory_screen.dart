@@ -43,6 +43,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 
+  Future<void> actualizarCantidad(String id, String accion) async {
+    final response = await http.post(
+      Uri.parse('https://yost.es/SM-IT/2025-26/1B/website/mvp/actualizar_cantidad.php'),
+      body: {
+        "id": id,
+        "accion": accion,
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (data["ok"] == true) {
+      setState(() {});
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error al actualizar cantidad")),
+      );
+    }
+  }
+
   void confirmarBorrado(String id, String nombre) {
     showDialog(
       context: context,
@@ -112,10 +132,43 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 margin: const EdgeInsets.all(8),
                 child: ListTile(
                   title: Text(item['nombre'] ?? 'Sin nombre'),
-                  subtitle: Text(
-                    "Marca: ${item['marca']} \nCantidad: ${item['cantidad']} \nCalorías: ${item['calorias']}",
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Marca: ${item['marca']}"),
+                      Text("Calorías: ${item['calorias']}"),
+                      Row(
+                        children: [
+                          const Text("Cantidad: "),
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: () {
+                              actualizarCantidad(
+                                item['id'].toString(),
+                                'restar',
+                              );
+                            },
+                          ),
+                          Text(
+                            item['cantidad'].toString(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline),
+                            onPressed: () {
+                              actualizarCantidad(
+                                item['id'].toString(),
+                                'sumar',
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  isThreeLine: true,
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
