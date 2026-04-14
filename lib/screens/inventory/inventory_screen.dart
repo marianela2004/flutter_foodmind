@@ -43,12 +43,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 
-  Future<void> actualizarCantidad(String id, String accion) async {
+  Future<void> cambiarFavorito(String id, int favorito) async {
     final response = await http.post(
-      Uri.parse('https://yost.es/SM-IT/2025-26/1B/website/mvp/actualizar_cantidad.php'),
+      Uri.parse('https://yost.es/SM-IT/2025-26/1B/website/mvp/favorito_despensa.php'),
       body: {
         "id": id,
-        "accion": accion,
+        "favorito": favorito.toString(),
       },
     );
 
@@ -58,7 +58,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       setState(() {});
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al actualizar cantidad")),
+        const SnackBar(content: Text("Error al actualizar favorito")),
       );
     }
   }
@@ -127,47 +127,27 @@ class _InventoryScreenState extends State<InventoryScreen> {
             itemCount: items.length,
             itemBuilder: (context, index) {
               final item = items[index];
+              final esFavorito = item['favorito'].toString() == '1';
 
               return Card(
                 margin: const EdgeInsets.all(8),
                 child: ListTile(
                   title: Text(item['nombre'] ?? 'Sin nombre'),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Marca: ${item['marca']}"),
-                      Text("Calorías: ${item['calorias']}"),
-                      Row(
-                        children: [
-                          const Text("Cantidad: "),
-                          IconButton(
-                            icon: const Icon(Icons.remove_circle_outline),
-                            onPressed: () {
-                              actualizarCantidad(
-                                item['id'].toString(),
-                                'restar',
-                              );
-                            },
-                          ),
-                          Text(
-                            item['cantidad'].toString(),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle_outline),
-                            onPressed: () {
-                              actualizarCantidad(
-                                item['id'].toString(),
-                                'sumar',
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
+                  subtitle: Text(
+                    "Marca: ${item['marca']} \nCantidad: ${item['cantidad']} \nCalorías: ${item['calorias']}",
+                  ),
+                  isThreeLine: true,
+                  leading: IconButton(
+                    icon: Icon(
+                      esFavorito ? Icons.favorite : Icons.favorite_border,
+                      color: esFavorito ? Colors.red : null,
+                    ),
+                    onPressed: () {
+                      cambiarFavorito(
+                        item['id'].toString(),
+                        esFavorito ? 0 : 1,
+                      );
+                    },
                   ),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
