@@ -22,7 +22,14 @@ class PrimaryButton extends StatelessWidget {
         ),
       ),
       onPressed: onPressed,
-      child: Text(text),
+      child: Text(
+  text,
+  style: const TextStyle(
+    fontFamily: 'MoreSugar',
+    fontSize: 18,
+    letterSpacing: 1,
+  ),
+),
     );
   }
 }

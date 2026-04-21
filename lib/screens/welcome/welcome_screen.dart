@@ -26,10 +26,10 @@ class WelcomeScreen extends StatelessWidget {
 
             const Text(
               "FOODMIND",
-              style: TextStyle(
-                fontSize: 40,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF537e5e),
+               style: TextStyle(
+               fontFamily: 'MoreSugar',
+               fontSize: 40,
+               color: Color(0xFF537e5e),
               ),
             ),
 

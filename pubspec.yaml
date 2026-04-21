@@ -69,6 +69,13 @@ flutter:
   assets:
     - assets/images/
 
+  fonts:
+    - family: MoreSugar
+      fonts:
+        - asset: assets/fonts/MoreSugar-Regular.ttf
+        - asset: assets/fonts/MoreSugar-Extras.ttf
+          weight: 700
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
