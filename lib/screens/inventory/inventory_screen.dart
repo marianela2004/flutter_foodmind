@@ -135,6 +135,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  Color obtenerColorCaducidad(String estado) {
+    switch (estado) {
+      case 'rojo':
+        return Colors.red;
+      case 'amarillo':
+        return Colors.orange;
+      default:
+        return Colors.green;
+    }
+  }
+
+  String obtenerTextoCaducidad(String estado) {
+    switch (estado) {
+      case 'rojo':
+        return 'Caducado';
+      case 'amarillo':
+        return 'Consumir pronto';
+      default:
+        return 'Fresco';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -182,15 +204,47 @@ class _InventoryScreenState extends State<InventoryScreen> {
               itemBuilder: (context, index) {
                 final item = items[index];
                 final esFavorito = item['favorito'].toString() == '1';
+                final estadoCaducidad =
+                    item['estado_caducidad']?.toString() ?? 'verde';
+                final colorCaducidad =
+                    obtenerColorCaducidad(estadoCaducidad);
+                final textoCaducidad =
+                    obtenerTextoCaducidad(estadoCaducidad);
 
                 return Card(
                   margin: const EdgeInsets.all(8),
                   child: ListTile(
                     title: Text(item['nombre'] ?? 'Sin nombre'),
-                    subtitle: Text(
-                      "Marca: ${item['marca'] ?? ''} \nCantidad: ${item['cantidad'] ?? ''} \nCalorías: ${item['calorias'] ?? ''}",
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Marca: ${item['marca'] ?? ''}"),
+                        Text("Cantidad: ${item['cantidad'] ?? ''}"),
+                        Text("Calorías: ${item['calorias'] ?? ''}"),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: colorCaducidad,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              textoCaducidad,
+                              style: TextStyle(
+                                color: colorCaducidad,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    isThreeLine: true,
                     leading: IconButton(
                       icon: Icon(
                         esFavorito ? Icons.favorite : Icons.favorite_border,
