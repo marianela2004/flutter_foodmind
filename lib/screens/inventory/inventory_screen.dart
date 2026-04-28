@@ -170,6 +170,172 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 
+  Future<void> editarProducto({
+    required String id,
+    required String nombre,
+    required String marca,
+    required String cantidad,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final usuarioId = prefs.getInt('usuario_id');
+
+    if (usuarioId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No se encontró el usuario actual")),
+      );
+      return;
+    }
+
+    final response = await http.post(
+      Uri.parse(
+        'https://yost.es/SM-IT/2025-26/1B/website/mvp/editar_despensa.php',
+      ),
+      body: {
+        'id': id,
+        'usuario_id': usuarioId.toString(),
+        'nombre': nombre,
+        'marca': marca,
+        'cantidad': cantidad,
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (data['ok'] == true) {
+      setState(() {
+        _futureDespensa = obtenerDespensa();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Producto actualizado")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(data['error'] ?? 'Error al editar producto')),
+      );
+    }
+  }
+
+  void mostrarEditarProducto(Map item) {
+    final nombreController =
+        TextEditingController(text: (item['nombre'] ?? '').toString());
+    final marcaController =
+        TextEditingController(text: (item['marca'] ?? '').toString());
+    final cantidadController =
+        TextEditingController(text: (item['cantidad'] ?? '1').toString());
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Editar producto',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: verde,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                TextField(
+                  controller: nombreController,
+                  decoration: InputDecoration(
+                    labelText: 'Nombre',
+                    filled: true,
+                    fillColor: crema.withOpacity(0.55),
+                    prefixIcon: const Icon(Icons.shopping_basket_rounded, color: verde),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: marcaController,
+                  decoration: InputDecoration(
+                    labelText: 'Marca',
+                    filled: true,
+                    fillColor: crema.withOpacity(0.55),
+                    prefixIcon: const Icon(Icons.sell_rounded, color: verde),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: cantidadController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Cantidad',
+                    filled: true,
+                    fillColor: crema.withOpacity(0.55),
+                    prefixIcon: const Icon(Icons.numbers_rounded, color: verde),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(color: marron),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: verde,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: () async {
+                          final nombre = nombreController.text.trim();
+                          final marca = marcaController.text.trim();
+                          final cantidad = cantidadController.text.trim();
+
+                          if (nombre.isEmpty) return;
+
+                          await editarProducto(
+                            id: item['id'].toString(),
+                            nombre: nombre,
+                            marca: marca,
+                            cantidad: cantidad,
+                          );
+
+                          if (!mounted) return;
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Guardar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void confirmarBorrado(String id, String nombre) {
     showDialog(
       context: context,
@@ -760,6 +926,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         item['id'].toString(),
                         esFavorito ? 0 : 1,
                       );
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.edit_rounded,
+                      color: verde,
+                    ),
+                    onPressed: () {
+                      mostrarEditarProducto(item);
                     },
                   ),
                   IconButton(
