@@ -57,9 +57,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'usuario_id': usuarioId.toString(),
         'nombre': nombre,
         'numero_pack': pack,
-        'dieta': dieta,
+        'tipo_dieta': dieta,
         'alergias': jsonEncode(alergias),
-        'dislikes': jsonEncode(dislikes),
+        'no_gustan': jsonEncode(dislikes),
       },
     );
   }

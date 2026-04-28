@@ -36,13 +36,50 @@ class _PackScreenState extends State<PackScreen> {
       return;
     }
 
-    // 👉 SI VIENE DESDE AJUSTES: SOLO EDITA Y VUELVE
     if (widget.editingFromSettings) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('numero_pack', numeroPack);
+      // Validar pack igual que en el onboarding
+      final response = await http.post(
+        Uri.parse('https://yost.es/SM-IT/2025-26/1B/website/mvp/validar_pack.php'),
+        body: {'numero_pack': numeroPack},
+      );
 
-      Navigator.pop(context);
-      return;
+      final body = response.body.trim();
+
+      if (body.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('El servidor devolvió una respuesta vacía')),
+        );
+        return;
+      }
+
+      dynamic data;
+      try {
+        data = jsonDecode(body);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Respuesta no válida del servidor')),
+        );
+        return;
+      }
+
+      if (response.statusCode == 200 && data['ok'] == true) {
+        // Pack válido → guardar y volver
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('numero_pack', numeroPack);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Número de pack actualizado')),
+        );
+
+        Navigator.pop(context);
+        return;
+      } else {
+        // Pack inválido
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['error'] ?? 'Número de pack no válido')),
+        );
+        return;
+      }
     }
 
     // 👉 SI VIENE DEL ONBOARDING: FLUJO NORMAL
