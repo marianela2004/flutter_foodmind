@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/primary_button.dart';
@@ -18,7 +19,22 @@ class DietScreen extends StatefulWidget {
 }
 
 class _DietScreenState extends State<DietScreen> {
-  final TextEditingController _dietController = TextEditingController();
+  final TextEditingController _detailsController = TextEditingController();
+
+  final List<String> dietOptions = const [
+    'Omnívora',
+    'Vegana',
+    'Vegetariana',
+    'Embarazo',
+    'Lactancia',
+    'Menopausia',
+    'SOP',
+    'Tiroides',
+    'Hipertensión',
+    'Persona mayor',
+  ];
+
+  final Set<String> selectedDiets = {};
 
   @override
   void initState() {
@@ -28,12 +44,37 @@ class _DietScreenState extends State<DietScreen> {
 
   Future<void> cargarDietaGuardada() async {
     final prefs = await SharedPreferences.getInstance();
-    _dietController.text = prefs.getString('dieta_usuario') ?? '';
+
+    final savedOptions = prefs.getString('dietas_usuario');
+    final savedDetails = prefs.getString('detalle_dieta_usuario') ?? '';
+
+    if (savedOptions != null) {
+      selectedDiets.addAll(List<String>.from(jsonDecode(savedOptions)));
+    }
+
+    _detailsController.text = savedDetails;
+    setState(() {});
   }
 
-  Future<void> guardarDieta(String dieta) async {
+  Future<void> guardarDieta() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('dieta_usuario', dieta);
+
+    await prefs.setString(
+      'dietas_usuario',
+      jsonEncode(selectedDiets.toList()),
+    );
+
+    await prefs.setString(
+      'detalle_dieta_usuario',
+      _detailsController.text.trim(),
+    );
+
+    final dietaCompleta = {
+      'opciones': selectedDiets.toList(),
+      'detalle': _detailsController.text.trim(),
+    };
+
+    await prefs.setString('dieta_usuario', jsonEncode(dietaCompleta));
   }
 
   @override
@@ -45,10 +86,11 @@ class _DietScreenState extends State<DietScreen> {
     const marron = Color(0xFF9d5d31);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFFF8F6F2),
       appBar: AppBar(
         title: const Text(
-          'Tu dieta',
+          'Tu alimentación',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,
@@ -61,13 +103,12 @@ class _DietScreenState extends State<DietScreen> {
         iconTheme: const IconThemeData(color: verde),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
               const SizedBox(height: 20),
 
-              // ICONO
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -107,10 +148,10 @@ class _DietScreenState extends State<DietScreen> {
                 ],
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 40),
 
               const Text(
-                'Cuéntanos tu dieta',
+                'Cuéntanos cómo comes',
                 style: TextStyle(
                   fontFamily: 'MoreSugar',
                   fontSize: 26,
@@ -123,7 +164,7 @@ class _DietScreenState extends State<DietScreen> {
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
-                  'Escribe el tipo de alimentación que sigues para adaptar mejor tu experiencia.',
+                  'Selecciona las opciones que se ajusten a ti para adaptar mejor tu menú diario.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
@@ -135,7 +176,6 @@ class _DietScreenState extends State<DietScreen> {
 
               const SizedBox(height: 30),
 
-              // CARD
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -155,11 +195,14 @@ class _DietScreenState extends State<DietScreen> {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.restaurant_menu_rounded,
-                            size: 18, color: marron),
+                        Icon(
+                          Icons.restaurant_menu_rounded,
+                          size: 18,
+                          color: marron,
+                        ),
                         SizedBox(width: 8),
                         Text(
-                          'Tipo de dieta',
+                          'Tipo de alimentación',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -169,19 +212,103 @@ class _DietScreenState extends State<DietScreen> {
                       ],
                     ),
 
+                    const SizedBox(height: 16),
+
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: dietOptions.map((option) {
+                        final selected = selectedDiets.contains(option);
+
+                        return GestureDetector(
+                          onTap: () {
+  setState(() {
+    if (selected) {
+      selectedDiets.remove(option);
+      return;
+    }
+
+    // Grupo alimentación: solo una opción
+    if (['Omnívora', 'Vegana', 'Vegetariana'].contains(option)) {
+      selectedDiets.remove('Omnívora');
+      selectedDiets.remove('Vegana');
+      selectedDiets.remove('Vegetariana');
+    }
+
+    // Grupo etapa vital: solo una opción
+    if (['Embarazo', 'Lactancia', 'Menopausia', 'Persona mayor']
+        .contains(option)) {
+      selectedDiets.remove('Embarazo');
+      selectedDiets.remove('Lactancia');
+      selectedDiets.remove('Menopausia');
+      selectedDiets.remove('Persona mayor');
+    }
+
+    selectedDiets.add(option);
+  });
+},
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 11,
+                            ),
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? verde
+                                  : crema.withOpacity(0.55),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: selected ? verde : crema,
+                              ),
+                            ),
+                            child: Text(
+                              option,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: selected ? Colors.white : verde,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 22),
+
+                    const Row(
+                      children: [
+                        Icon(Icons.edit_note_rounded, size: 18, color: marron),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Detalles personalizados',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: verde,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
                     const SizedBox(height: 10),
 
                     TextField(
-                      controller: _dietController,
+                      controller: _detailsController,
+                      minLines: 3,
+                      maxLines: 5,
                       decoration: InputDecoration(
-                        hintText: 'Ej. vegetariana, vegana, omnívora...',
+                        hintText:
+                            'Ej. mínimo 90g de proteína al día, 1800 kcal, dieta ayurveda, baja en sal...',
                         hintStyle: const TextStyle(color: Color(0xFF8E857D)),
                         filled: true,
                         fillColor: crema.withOpacity(0.55),
-                        prefixIcon:
-                            const Icon(Icons.spa_rounded, color: verde),
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 18),
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none,
@@ -196,22 +323,22 @@ class _DietScreenState extends State<DietScreen> {
 
                     const SizedBox(height: 12),
 
-                    // ADVERTENCIA
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: mostaza.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.info_outline,
-                              size: 18, color: marron),
+                          Icon(Icons.info_outline, size: 18, color: marron),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Puedes indicar cualquier tipo de dieta o estilo de alimentación.',
+                              'Esta información se usará para personalizar tus experiencia en la aplicación.',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: marron,
@@ -229,10 +356,17 @@ class _DietScreenState extends State<DietScreen> {
                       child: PrimaryButton(
                         text: 'Continuar',
                         onPressed: () async {
-                          final dieta = _dietController.text.trim();
-                          if (dieta.isEmpty) return;
+                          if (selectedDiets.isEmpty &&
+                              _detailsController.text.trim().isEmpty) {
+                            return;
+                          }
 
-                          await guardarDieta(dieta);
+                          await guardarDieta();
+
+                          final dietaParaSiguientePantalla = jsonEncode({
+                            'opciones': selectedDiets.toList(),
+                            'detalle': _detailsController.text.trim(),
+                          });
 
                           if (widget.editingFromSettings) {
                             Navigator.pop(context);
@@ -244,7 +378,7 @@ class _DietScreenState extends State<DietScreen> {
                             MaterialPageRoute(
                               builder: (_) => AllergiesScreen(
                                 numeroPack: widget.numeroPack,
-                                diet: dieta,
+                                diet: dietaParaSiguientePantalla,
                               ),
                             ),
                           );
@@ -264,6 +398,8 @@ class _DietScreenState extends State<DietScreen> {
                   color: Color(0xFF8A8A8A),
                 ),
               ),
+
+              const SizedBox(height: 40),
             ],
           ),
         ),

@@ -26,6 +26,7 @@ class InitialStockScreen extends StatefulWidget {
 
 class _InitialStockScreenState extends State<InitialStockScreen> {
   final TextEditingController nombreController = TextEditingController();
+  final TextEditingController marcaController = TextEditingController();
   final TextEditingController cantidadController =
       TextEditingController(text: '1');
 
@@ -35,12 +36,14 @@ class _InitialStockScreenState extends State<InitialStockScreen> {
   @override
   void dispose() {
     nombreController.dispose();
+    marcaController.dispose();
     cantidadController.dispose();
     super.dispose();
   }
 
   void anadirAlimento() {
     final nombre = nombreController.text.trim();
+    final marca = marcaController.text.trim();
     final cantidad = int.tryParse(cantidadController.text.trim()) ?? 1;
 
     if (nombre.isEmpty) return;
@@ -48,9 +51,12 @@ class _InitialStockScreenState extends State<InitialStockScreen> {
     setState(() {
       initialStock.add({
         'nombre': nombre,
+        'marca': marca,
         'cantidad': cantidad <= 0 ? 1 : cantidad,
       });
+
       nombreController.clear();
+      marcaController.clear();
       cantidadController.text = '1';
     });
   }
@@ -87,7 +93,7 @@ class _InitialStockScreenState extends State<InitialStockScreen> {
           'usuario_id': usuarioId.toString(),
           'codigo': '',
           'nombre': alimento['nombre'].toString(),
-          'marca': '',
+          'marca': alimento['marca'].toString(),
           'ingredientes': '',
           'calorias': '0',
           'cantidad': alimento['cantidad'].toString(),
@@ -157,6 +163,7 @@ class _InitialStockScreenState extends State<InitialStockScreen> {
     const marron = Color(0xFF9d5d31);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFFF8F6F2),
       appBar: AppBar(
         title: const Text(
@@ -173,11 +180,12 @@ class _InitialStockScreenState extends State<InitialStockScreen> {
         iconTheme: const IconThemeData(color: verde),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
               const SizedBox(height: 20),
+
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -220,7 +228,9 @@ class _InitialStockScreenState extends State<InitialStockScreen> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 24),
+
               const Text(
                 '¿Qué tienes en casa?',
                 style: TextStyle(
@@ -229,7 +239,9 @@ class _InitialStockScreenState extends State<InitialStockScreen> {
                   color: verde,
                 ),
               ),
+
               const SizedBox(height: 12),
+
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
@@ -242,189 +254,229 @@ class _InitialStockScreenState extends State<InitialStockScreen> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 30),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(
-                      color: crema,
-                      width: 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 15,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
+
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: crema,
+                    width: 1.2,
                   ),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: nombreController,
-                        decoration: InputDecoration(
-                          hintText: 'Ej. leche, arroz, pasta...',
-                          filled: true,
-                          fillColor: crema.withOpacity(0.55),
-                          prefixIcon: const Icon(
-                            Icons.add_shopping_cart_rounded,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 15,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: nombreController,
+                      decoration: InputDecoration(
+                        hintText: 'Ej. leche, arroz, pasta...',
+                        filled: true,
+                        fillColor: crema.withOpacity(0.55),
+                        prefixIcon: const Icon(
+                          Icons.add_shopping_cart_rounded,
+                          color: verde,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(
                             color: verde,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(
-                              color: verde,
-                              width: 1.5,
-                            ),
+                            width: 1.5,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: cantidadController,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                hintText: 'Cantidad',
-                                filled: true,
-                                fillColor: crema.withOpacity(0.55),
-                                prefixIcon: const Icon(
-                                  Icons.numbers_rounded,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    TextField(
+                      controller: marcaController,
+                      decoration: InputDecoration(
+                        hintText: 'Marca (opcional)',
+                        filled: true,
+                        fillColor: crema.withOpacity(0.55),
+                        prefixIcon: const Icon(
+                          Icons.sell_rounded,
+                          color: verde,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(
+                            color: verde,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: cantidadController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              hintText: 'Cantidad',
+                              filled: true,
+                              fillColor: crema.withOpacity(0.55),
+                              prefixIcon: const Icon(
+                                Icons.numbers_rounded,
+                                color: verde,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(
                                   color: verde,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide.none,
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide.none,
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: const BorderSide(
-                                    color: verde,
-                                    width: 1.5,
-                                  ),
+                                  width: 1.5,
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: verde,
-                              borderRadius: BorderRadius.circular(14),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: verde,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.add, color: Colors.white),
+                            onPressed: anadirAlimento,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    SizedBox(
+                      height: 190,
+                      child: initialStock.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'Aún no has añadido alimentos',
+                                style: TextStyle(
+                                  color: Color(0xFF8A8A8A),
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              itemCount: initialStock.length,
+                              itemBuilder: (context, index) {
+                                final item = initialStock[index];
+                                final marca = item['marca'].toString();
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: crema.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          marca.isEmpty
+                                              ? '${item['nombre']} x${item['cantidad']}'
+                                              : '${item['nombre']} · $marca x${item['cantidad']}',
+                                          style: const TextStyle(fontSize: 15),
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            initialStock.removeAt(index);
+                                          });
+                                        },
+                                        child: const Icon(
+                                          Icons.close,
+                                          size: 18,
+                                          color: marron,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
                             ),
-                            child: IconButton(
-                              icon: const Icon(Icons.add, color: Colors.white),
-                              onPressed: anadirAlimento,
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: mostaza.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: marron,
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'También podrás añadir productos más adelante usando el escáner integrado. Si falta información nutricional, intentaremos completarla automáticamente.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: marron,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
-                      Expanded(
-                        child: initialStock.isEmpty
-                            ? const Center(
-                                child: Text(
-                                  'Aún no has añadido alimentos',
-                                  style: TextStyle(
-                                    color: Color(0xFF8A8A8A),
-                                  ),
-                                ),
-                              )
-                            : ListView.builder(
-                                itemCount: initialStock.length,
-                                itemBuilder: (context, index) {
-                                  final item = initialStock[index];
-
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 10),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: crema.withOpacity(0.5),
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            '${item['nombre']} x${item['cantidad']}',
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              initialStock.removeAt(index);
-                                            });
-                                          },
-                                          child: const Icon(
-                                            Icons.close,
-                                            size: 18,
-                                            color: marron,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: mostaza.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              size: 18,
-                              color: marron,
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Estos productos se guardarán ya en tu inventario.',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: marron,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
+
               const SizedBox(height: 16),
+
               SizedBox(
                 width: double.infinity,
                 child: cargando
@@ -434,7 +486,8 @@ class _InitialStockScreenState extends State<InitialStockScreen> {
                         onPressed: finalizarOnboarding,
                       ),
               ),
-              const SizedBox(height: 16),
+
+              const SizedBox(height: 40),
             ],
           ),
         ),
