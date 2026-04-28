@@ -110,7 +110,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
 
     final response = await http.post(
-      Uri.parse('https://yost.es/SM-IT/2025-26/1B/website/mvp/borrar_despensa.php'),
+      Uri.parse(
+        'https://yost.es/SM-IT/2025-26/1B/website/mvp/borrar_despensa.php',
+      ),
       body: {
         "id": id,
         "usuario_id": usuarioId.toString(),
@@ -145,7 +147,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
 
     final response = await http.post(
-      Uri.parse('https://yost.es/SM-IT/2025-26/1B/website/mvp/favorito_despensa.php'),
+      Uri.parse(
+        'https://yost.es/SM-IT/2025-26/1B/website/mvp/favorito_despensa.php',
+      ),
       body: {
         "id": id,
         "favorito": favorito.toString(),
@@ -215,6 +219,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
       default:
         return 'Fresco';
     }
+  }
+
+  String limpiarValor(dynamic value) {
+    final texto = (value ?? '').toString();
+    if (texto.isEmpty || texto == 'null') return '0';
+    return texto;
   }
 
   Widget _buildHeader() {
@@ -395,238 +405,384 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildProductCard(Map item) {
-  final esFavorito = item['favorito'].toString() == '1';
-  final estadoCaducidad = item['estado_caducidad']?.toString() ?? 'verde';
-  final colorCaducidad = obtenerColorCaducidad(estadoCaducidad);
-  final textoCaducidad = obtenerTextoCaducidad(estadoCaducidad);
+  void mostrarDetalleNutricional(Map item) {
+    final nombre = (item['nombre'] ?? 'Sin nombre').toString();
+    final marca = (item['marca'] ?? '').toString();
+    final calorias = limpiarValor(item['calorias']);
+    final proteinas = limpiarValor(item['proteinas']);
+    final carbohidratos = limpiarValor(item['carbohidratos']);
+    final grasas = limpiarValor(item['grasas']);
+    final azucares = limpiarValor(item['azucares']);
+    final sal = limpiarValor(item['sal']);
+    final energiaKj = limpiarValor(item['energia_kj']);
+    final fuenteNutricional =
+        (item['fuente_nutricional'] ?? 'manual').toString();
+    final ingredientes = (item['ingredientes'] ?? '').toString();
 
-  final marca = (item['marca'] ?? '').toString();
-  final cantidad = (item['cantidad'] ?? '').toString();
-  final calorias = (item['calorias'] ?? '').toString();
-  final motivoIA = (item['motivo_ia'] ?? '').toString();
-  final fechaCaducidad = (item['fecha_estimada_caducidad'] ?? '').toString();
-  final diasEstimados = (item['dias_estimados'] ?? '').toString();
-
-  return Container(
-    margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: crema, width: 1.1),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.035),
-          blurRadius: 14,
-          offset: const Offset(0, 5),
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
         ),
-      ],
-    ),
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: crema.withOpacity(0.75),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(
-              Icons.shopping_basket_rounded,
-              color: verde,
-              size: 26,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item['nombre'] ?? 'Sin nombre',
+                  nombre,
                   style: const TextStyle(
-                    fontSize: 17,
+                    fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: verde,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Marca: $marca',
+                  marca.isEmpty ? 'Sin marca' : marca,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     color: Color(0xFF6A6A6A),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  'Cantidad: $cantidad',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF6A6A6A),
+                const SizedBox(height: 18),
+                const Text(
+                  'Información nutricional por 100 g',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: verde,
                   ),
                 ),
-                const SizedBox(height: 2),
-                if (fechaCaducidad.isNotEmpty && fechaCaducidad != 'null') ...[
-                  const SizedBox(height: 2),
+                const SizedBox(height: 12),
+                _NutritionRow(label: 'Calorías', value: '$calorias kcal'),
+                _NutritionRow(label: 'Proteínas', value: '$proteinas g'),
+                _NutritionRow(
+                  label: 'Carbohidratos',
+                  value: '$carbohidratos g',
+                ),
+                _NutritionRow(label: 'Grasas', value: '$grasas g'),
+                _NutritionRow(label: 'Azúcares', value: '$azucares g'),
+                _NutritionRow(label: 'Sal', value: '$sal g'),
+                _NutritionRow(label: 'Energía', value: '$energiaKj kJ'),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: mostaza.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, size: 18, color: marron),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          fuenteNutricional.contains('openai')
+                              ? 'Algunos valores pueden ser estimados automáticamente.'
+                              : 'Fuente nutricional: $fuenteNutricional',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: marron,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (ingredientes.isNotEmpty && ingredientes != 'null') ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Ingredientes',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: verde,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
-                    'Caducidad estimada: $fechaCaducidad',
+                    ingredientes,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 13.5,
+                      height: 1.4,
                       color: Color(0xFF6A6A6A),
                     ),
                   ),
                 ],
-                const SizedBox(height: 10),
-                InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () {
-                    final tieneDias =
-                        diasEstimados.isNotEmpty && diasEstimados != 'null';
-                    final tieneMotivo =
-                        motivoIA.isNotEmpty && motivoIA != 'null';
-
-                    showDialog(
-                      context: context,
-                      builder: (context) => Dialog(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(22),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 12,
-                                    height: 12,
-                                    decoration: BoxDecoration(
-                                      color: colorCaducidad,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    textoCaducidad,
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: colorCaducidad,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                tieneDias
-                                    ? 'Duración estimada: $diasEstimados días'
-                                    : 'No hay una estimación de días disponible.',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Color(0xFF4F4F4F),
-                                  height: 1.4,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                tieneMotivo
-                                    ? motivoIA
-                                    : 'No hay una explicación disponible todavía.',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Color(0xFF6A6A6A),
-                                  height: 1.45,
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text(
-                                    'Cerrar',
-                                    style: TextStyle(color: verde),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorCaducidad.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 9,
-                          height: 9,
-                          decoration: BoxDecoration(
-                            color: colorCaducidad,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          textoCaducidad,
-                          style: TextStyle(
-                            color: colorCaducidad,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+                const SizedBox(height: 18),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Cerrar',
+                      style: TextStyle(color: verde),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          Column(
-            children: [
-              IconButton(
-                icon: Icon(
-                  esFavorito ? Icons.favorite : Icons.favorite_border,
-                  color: esFavorito ? Colors.red : marron.withOpacity(0.7),
-                ),
-                onPressed: () {
-                  cambiarFavorito(
-                    item['id'].toString(),
-                    esFavorito ? 0 : 1,
-                  );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                onPressed: () {
-                  confirmarBorrado(
-                    item['id'].toString(),
-                    item['nombre'] ?? 'producto',
-                  );
-                },
-              ),
-            ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductCard(Map item) {
+    final esFavorito = item['favorito'].toString() == '1';
+    final estadoCaducidad = item['estado_caducidad']?.toString() ?? 'verde';
+    final colorCaducidad = obtenerColorCaducidad(estadoCaducidad);
+    final textoCaducidad = obtenerTextoCaducidad(estadoCaducidad);
+
+    final marca = (item['marca'] ?? '').toString();
+    final cantidad = (item['cantidad'] ?? '').toString();
+    final calorias = limpiarValor(item['calorias']);
+    final motivoIA = (item['motivo_ia'] ?? '').toString();
+    final fechaCaducidad = (item['fecha_estimada_caducidad'] ?? '').toString();
+    final diasEstimados = (item['dias_estimados'] ?? '').toString();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: crema, width: 1.1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.035),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
-    ),
-  );
-}
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () => mostrarDetalleNutricional(item),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: crema.withOpacity(0.75),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.shopping_basket_rounded,
+                  color: verde,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item['nombre'] ?? 'Sin nombre',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: verde,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      marca.isEmpty ? 'Marca: Sin marca' : 'Marca: $marca',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF6A6A6A),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Cantidad: $cantidad',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF6A6A6A),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Calorías: $calorias kcal/100g',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF6A6A6A),
+                      ),
+                    ),
+                    if (fechaCaducidad.isNotEmpty &&
+                        fechaCaducidad != 'null') ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Caducidad estimada: $fechaCaducidad',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF6A6A6A),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () {
+                        final tieneDias = diasEstimados.isNotEmpty &&
+                            diasEstimados != 'null';
+                        final tieneMotivo =
+                            motivoIA.isNotEmpty && motivoIA != 'null';
+
+                        showDialog(
+                          context: context,
+                          builder: (context) => Dialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: BoxDecoration(
+                                          color: colorCaducidad,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        textoCaducidad,
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                          color: colorCaducidad,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    tieneDias
+                                        ? 'Duración estimada: $diasEstimados días'
+                                        : 'No hay una estimación de días disponible.',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0xFF4F4F4F),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    tieneMotivo
+                                        ? motivoIA
+                                        : 'No hay una explicación disponible todavía.',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0xFF6A6A6A),
+                                      height: 1.45,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text(
+                                        'Cerrar',
+                                        style: TextStyle(color: verde),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorCaducidad.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 9,
+                              height: 9,
+                              decoration: BoxDecoration(
+                                color: colorCaducidad,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              textoCaducidad,
+                              style: TextStyle(
+                                color: colorCaducidad,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      esFavorito ? Icons.favorite : Icons.favorite_border,
+                      color: esFavorito ? Colors.red : marron.withOpacity(0.7),
+                    ),
+                    onPressed: () {
+                      cambiarFavorito(
+                        item['id'].toString(),
+                        esFavorito ? 0 : 1,
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.red,
+                    ),
+                    onPressed: () {
+                      confirmarBorrado(
+                        item['id'].toString(),
+                        item['nombre'] ?? 'producto',
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -710,6 +866,52 @@ class _InventoryScreenState extends State<InventoryScreen> {
             },
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _NutritionRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _NutritionRow({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const verde = Color(0xFF527d5a);
+    const crema = Color(0xFFe9ddd4);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: crema.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13.5,
+                color: Color(0xFF6A6A6A),
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: verde,
+            ),
+          ),
+        ],
       ),
     );
   }
