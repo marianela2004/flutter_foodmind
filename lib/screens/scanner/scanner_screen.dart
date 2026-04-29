@@ -89,7 +89,7 @@ class _ScannerScreenState extends State<ScannerScreen> with WidgetsBindingObserv
 
     try {
       final response = await http.get(
-        Uri.parse('https://world.openfoodfacts.net/api/v2/product/$barcode'),
+        Uri.parse('https://world.openfoodfacts.org/api/v2/product/$barcode'),
       );
 
       if (!mounted) return;
@@ -180,9 +180,15 @@ class _ScannerScreenState extends State<ScannerScreen> with WidgetsBindingObserv
           'marca': marcaController.text.trim(),
           'ingredientes': ingredientesController.text,
           'calorias': caloriasController.text.trim().isEmpty
-              ? '0'
-              : caloriasController.text,
-          'cantidad': cantidadController.text.trim(),
+    ? '0'
+    : caloriasController.text.trim(),
+'proteinas': '0',
+'carbohidratos': '0',
+'grasas': '0',
+'azucares': '0',
+'sal': '0',
+'energia_kj': '0',
+'cantidad': cantidadController.text.trim(),
           'ultima_accion': '1',
           'favorito': '0',
         },
