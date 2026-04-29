@@ -281,7 +281,7 @@ Future<void> abrirWebPlanes() async {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8),
                   child: Text(
-                    'Introduce el número de tu lector para vincular tu despensa y empezar a personalizar la experiencia.',
+                    'Introduce el número de tu pack para vincular tu despensa y empezar a personalizar la experiencia.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 15,
@@ -385,7 +385,7 @@ Future<void> abrirWebPlanes() async {
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Este número identifica tu lector y tu despensa personal.',
+                                'Este número identifica tu pack y tu despensa personal.',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: marron,
