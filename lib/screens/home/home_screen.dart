@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../inventory/inventory_screen.dart';
 import '../scanner/scanner_screen.dart';
 import '../settings/settings_screen.dart';
-import '../diets/diets_screen.dart';
+import '../consumption/consumption_screen.dart';
 import '../favorites/favorites_screen.dart';
 import '../menu/menu_screen.dart';
 
@@ -164,12 +164,12 @@ class MoreScreen extends StatelessWidget {
 
               _MoreItem(
                 icon: Icons.local_dining,
-                title: "Dietas",
-                subtitle: "Personaliza tu alimentación",
+                title: "Seguimiento inteligente",
+                subtitle: "Analiza tu consumo y hábitos",
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const DietsScreen()),
+                    MaterialPageRoute(builder: (_) => const ConsumptionScreen()),
                   );
                 },
               ),
