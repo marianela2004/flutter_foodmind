@@ -1,7 +1,7 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
-export "FLUTTER_ROOT=C:\Users\shush\flutter"
-export "FLUTTER_APPLICATION_PATH=C:\Users\shush\OneDrive\Escritorio\SM\flutter_foodmind"
+export "FLUTTER_ROOT=C:\Users\usuario\Downloads\flutter"
+export "FLUTTER_APPLICATION_PATH=C:\Users\usuario\Documents\8o CUATRIMESTRE 25-26\SM\flutter_foodmind"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
 export "FLUTTER_TARGET=lib\main.dart"
 export "FLUTTER_BUILD_DIR=build"
