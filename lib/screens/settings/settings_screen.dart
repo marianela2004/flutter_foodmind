@@ -23,7 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<String> alergias = [];
   List<String> dislikes = [];
 
-  bool editingNombre = false; // 👈 NUEVO: modo edición del nombre
+  bool editingNombre = false;
 
   final TextEditingController nombreController = TextEditingController();
 
@@ -40,8 +40,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       nombre = prefs.getString('nombre_usuario') ?? '';
       pack = prefs.getString('numero_pack') ?? '';
       dieta = prefs.getString('dieta_usuario') ?? '';
-      alergias = List<String>.from(jsonDecode(prefs.getString('alergias_usuario') ?? '[]'));
-      dislikes = List<String>.from(jsonDecode(prefs.getString('dislikes_usuario') ?? '[]'));
+      alergias = List<String>.from(
+          jsonDecode(prefs.getString('alergias_usuario') ?? '[]'));
+      dislikes = List<String>.from(
+          jsonDecode(prefs.getString('dislikes_usuario') ?? '[]'));
 
       nombreController.text = nombre;
     });
@@ -52,7 +54,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final usuarioId = prefs.getInt('usuario_id');
 
     await http.post(
-      Uri.parse('https://yost.es/SM-IT/2025-26/1B/website/mvp/guardar_usuario.php'),
+      Uri.parse(
+          'https://yost.es/SM-IT/2025-26/1B/website/mvp/guardar_usuario.php'),
       body: {
         'usuario_id': usuarioId.toString(),
         'nombre': nombre,
@@ -64,6 +67,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // ⭐ FORMATEAR DIETA
+  String formatearDieta(String dietaRaw) {
+    if (dietaRaw.trim().isEmpty) return 'No configurado';
+
+    try {
+      final data = jsonDecode(dietaRaw);
+
+      if (data is Map) {
+        final opciones = data['opciones'];
+        final detalle = data['detalle']?.toString().trim() ?? '';
+
+        final opcionesTexto =
+            opciones is List && opciones.isNotEmpty ? opciones.join(', ') : '';
+
+        if (opcionesTexto.isNotEmpty && detalle.isNotEmpty) {
+          return '$opcionesTexto\n$detalle';
+        }
+
+        if (opcionesTexto.isNotEmpty) return opcionesTexto;
+        if (detalle.isNotEmpty) return detalle;
+      }
+
+      if (data is List) return data.join(', ');
+    } catch (_) {}
+
+    return dietaRaw;
+  }
+
   @override
   Widget build(BuildContext context) {
     const verde = Color(0xFF527d5a);
@@ -73,8 +104,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6F2),
-
-      // ❌ SIN FLECHA ATRÁS
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text(
@@ -89,12 +118,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         elevation: 0,
         centerTitle: true,
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: ListView(
           children: [
-            // ICONO SUPERIOR
+            // ICONO
             Center(
               child: Stack(
                 alignment: Alignment.center,
@@ -138,7 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 30),
 
-            // 🟩 NOMBRE (con modo edición)
+            // NOMBRE
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -156,19 +184,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Nombre", style: TextStyle(color: verde, fontWeight: FontWeight.w600)),
+                  const Text("Nombre",
+                      style:
+                          TextStyle(color: verde, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 10),
-
                   Row(
                     children: [
                       Expanded(
                         child: TextField(
                           controller: nombreController,
-                          enabled: editingNombre, // 👈 SOLO editable si pulsas Editar
+                          enabled: editingNombre,
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: crema.withOpacity(0.55),
-                            prefixIcon: const Icon(Icons.person, color: verde),
+                            prefixIcon:
+                                const Icon(Icons.person, color: verde),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                               borderSide: BorderSide.none,
@@ -177,33 +207,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onChanged: (v) => nombre = v,
                         ),
                       ),
-
                       const SizedBox(width: 12),
-
                       ElevatedButton(
                         onPressed: () async {
                           if (!editingNombre) {
-                            // ENTRAR EN MODO EDICIÓN
                             setState(() => editingNombre = true);
                             return;
                           }
 
-                          // GUARDAR NOMBRE
-                          final prefs = await SharedPreferences.getInstance();
+                          final prefs =
+                              await SharedPreferences.getInstance();
                           await prefs.setString('nombre_usuario', nombre);
                           await guardarEnServidor();
 
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Nombre guardado")),
+                            const SnackBar(
+                                content: Text("Nombre guardado")),
                           );
 
-                          // SALIR DE MODO EDICIÓN
                           setState(() => editingNombre = false);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: verde,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -218,26 +246,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 30),
 
-            // 🟩 TARJETAS
+            // PACK (NO EDITABLE)
             _tile(
-              titulo: "Código lector",
+              titulo: "Código pack",
               valor: pack,
               icono: Icons.qr_code_2_rounded,
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const PackScreen(editingFromSettings: true),
-                  ),
-                );
-                cargarDatos();
-                guardarEnServidor();
-              },
+              editable: false,
+              onTap: () {},
             ),
 
+            // DIETA (FORMATEADA)
             _tile(
               titulo: "Dieta",
-              valor: dieta,
+              valor: formatearDieta(dieta),
               icono: Icons.eco_rounded,
               onTap: () async {
                 await Navigator.push(
@@ -300,17 +321,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // TILE MODIFICADO
   Widget _tile({
     required String titulo,
     required String valor,
     required IconData icono,
     required VoidCallback onTap,
+    bool editable = true,
   }) {
     const verde = Color(0xFF527d5a);
     const crema = Color(0xFFe9ddd4);
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: editable ? onTap : null,
       child: Container(
         margin: const EdgeInsets.only(bottom: 18),
         padding: const EdgeInsets.all(20),
@@ -350,7 +373,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: verde),
+            if (editable)
+              const Icon(Icons.arrow_forward_ios_rounded,
+                  size: 16, color: verde),
           ],
         ),
       ),
