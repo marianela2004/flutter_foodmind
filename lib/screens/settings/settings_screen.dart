@@ -104,8 +104,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6F2),
+
+      // ⭐⭐⭐ AQUI VA LA FLECHA DE VOLVER ⭐⭐⭐
       appBar: AppBar(
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: verde),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text(
           "Ajustes",
           style: TextStyle(
@@ -118,6 +124,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         elevation: 0,
         centerTitle: true,
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: ListView(
