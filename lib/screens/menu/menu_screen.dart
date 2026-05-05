@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import '../chatbot/chatbot.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -103,15 +104,44 @@ class _MenuScreenState extends State<MenuScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6F2),
       appBar: AppBar(
-        title: const Text("Menú diario",
-            style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-                color: verde)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
+  title: const Text(
+    "Menú diario",
+    style: TextStyle(
+      fontSize: 22,
+      fontWeight: FontWeight.w600,
+      color: verde,
+    ),
+  ),
+  backgroundColor: Colors.transparent,
+  elevation: 0,
+  centerTitle: true,
+
+  actions: [
+    Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: GestureDetector(
+onTap: () {
+  showDialog(
+    context: context,
+    barrierColor: Colors.black.withOpacity(0.3), // fondo oscuro
+    builder: (_) => const Chatbot(),
+  );
+},
+        child: Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: verde, width: 2),
+          ),
+          child: const CircleAvatar(
+            radius: 16,
+            backgroundImage: AssetImage('assets/images/cocinia.png'),
+          ),
+        ),
       ),
+    ),
+  ],
+),
       body: loading
           ? const Center(child: CircularProgressIndicator(color: verde))
           : Padding(

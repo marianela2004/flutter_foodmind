@@ -23,7 +23,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   void initState() {
     super.initState();
-    _futureDespensa = cargarInventarioActualizado();
+    _futureDespensa = obtenerDespensa();
+    _actualizarCaducidadEnSegundoPlano();
+  }
+
+  Future<void> _actualizarCaducidadEnSegundoPlano() async {
+    try {
+      await actualizarCaducidadTodos();
+
+      if (!mounted) return;
+
+      setState(() {
+        _futureDespensa = obtenerDespensa();
+      });
+    } catch (_) {
+      // No mostramos error para no bloquear la pantalla.
+    }
   }
 
   Future<List> cargarInventarioActualizado() async {
@@ -95,6 +110,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
     setState(() {
       _futureDespensa = obtenerDespensa();
     });
+
+    _actualizarCaducidadEnSegundoPlano();
+
     await _futureDespensa;
   }
 
@@ -125,6 +143,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
       setState(() {
         _futureDespensa = obtenerDespensa();
       });
+
+      _actualizarCaducidadEnSegundoPlano();
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Producto borrado")),
       );
@@ -206,6 +227,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
         _futureDespensa = obtenerDespensa();
       });
 
+      _actualizarCaducidadEnSegundoPlano();
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Producto actualizado")),
       );
@@ -249,7 +272,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     labelText: 'Nombre',
                     filled: true,
                     fillColor: crema.withOpacity(0.55),
-                    prefixIcon: const Icon(Icons.shopping_basket_rounded, color: verde),
+                    prefixIcon: const Icon(
+                      Icons.shopping_basket_rounded,
+                      color: verde,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide.none,
@@ -996,9 +1022,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 builder: (context) => const AddProductScreen(),
               ),
             );
+
             setState(() {
-              _futureDespensa = cargarInventarioActualizado();
+              _futureDespensa = obtenerDespensa();
             });
+
+            _actualizarCaducidadEnSegundoPlano();
           },
           child: const Icon(Icons.add),
         ),
