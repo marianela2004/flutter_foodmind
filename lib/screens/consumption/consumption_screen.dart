@@ -1,4 +1,7 @@
 import 'dart:convert';
+import 'dart:math';
+
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -53,6 +56,7 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
     setState(() {
       _futureReporte = obtenerReporte();
     });
+
     await _futureReporte;
   }
 
@@ -137,6 +141,263 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
     );
   }
 
+  Widget _insightsCompra(List lista) {
+    if (lista.isEmpty) {
+      return const Text(
+        "Todavía no hay suficientes datos para darte consejos de compra.",
+        style: TextStyle(color: Colors.black54),
+      );
+    }
+
+    return Column(
+      children: lista.map((e) {
+        final item = Map<String, dynamic>.from(e);
+
+        final nombre = item['nombre']?.toString() ?? 'Producto';
+        final compras = _toInt(item['compras']);
+        final caducados = _toInt(item['caducados']);
+        final consumidos = _toInt(item['consumidos']);
+
+        final bool problema = caducados > 0;
+
+        final mensaje = item['mensaje']?.toString() ??
+            _generarMensajeInsight(
+              nombre: nombre,
+              compras: compras,
+              caducados: caducados,
+              consumidos: consumidos,
+            );
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: problema
+                ? Colors.red.withOpacity(0.08)
+                : verde.withOpacity(0.10),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: problema
+                  ? Colors.red.withOpacity(0.25)
+                  : verde.withOpacity(0.20),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                problema
+                    ? Icons.warning_amber_rounded
+                    : Icons.check_circle_outline_rounded,
+                color: problema ? Colors.red.shade400 : verde,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  mensaje,
+                  style: const TextStyle(
+                    height: 1.4,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF3F3F3F),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String _generarMensajeInsight({
+    required String nombre,
+    required int compras,
+    required int caducados,
+    required int consumidos,
+  }) {
+    if (caducados > 0) {
+      return "Has comprado $nombre $compras veces y se te ha caducado $caducados. Compra menos cantidad o intenta consumirlo antes.";
+    }
+
+    if (consumidos > 0) {
+      return "Sueles consumir bien $nombre. Puedes mantener tu cantidad habitual.";
+    }
+
+    return "Has comprado $nombre $compras veces. Cuando haya más datos, podremos darte una recomendación mejor.";
+  }
+
+  Widget _graficoComprasCaducados(List lista) {
+    if (lista.isEmpty) {
+      return const Text(
+        "Aún no hay datos suficientes para mostrar el gráfico.",
+        style: TextStyle(color: Colors.black54),
+      );
+    }
+
+    final items = lista.take(5).map((e) {
+      return Map<String, dynamic>.from(e);
+    }).toList();
+
+    return SizedBox(
+      height: 240,
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: _calcularMaxY(items),
+          gridData: const FlGridData(show: false),
+          borderData: FlBorderData(show: false),
+          barTouchData: BarTouchData(
+            enabled: true,
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                final item = items[group.x.toInt()];
+                final nombre = item['nombre']?.toString() ?? '';
+                final label = rodIndex == 0 ? 'Comprado' : 'Caducado';
+
+                return BarTooltipItem(
+                  "$nombre\n$label: ${rod.toY.toInt()}",
+                  const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              },
+            ),
+          ),
+          titlesData: FlTitlesData(
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            leftTitles: const AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 44,
+                getTitlesWidget: (value, meta) {
+                  final index = value.toInt();
+
+                  if (index < 0 || index >= items.length) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final nombre = items[index]['nombre']?.toString() ?? '';
+
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      nombre.length > 8
+                          ? '${nombre.substring(0, 8)}…'
+                          : nombre,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          barGroups: List.generate(items.length, (index) {
+            final compras = _toDouble(items[index]['compras']);
+            final caducados = _toDouble(items[index]['caducados']);
+
+            return BarChartGroupData(
+              x: index,
+              barsSpace: 4,
+              barRods: [
+                BarChartRodData(
+                  toY: compras,
+                  width: 10,
+                  borderRadius: BorderRadius.circular(6),
+                  color: verde,
+                ),
+                BarChartRodData(
+                  toY: caducados,
+                  width: 10,
+                  borderRadius: BorderRadius.circular(6),
+                  color: Colors.red.shade300,
+                ),
+              ],
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Widget _leyendaGrafico() {
+    return Row(
+      children: [
+        _itemLeyenda(verde, "Comprado"),
+        const SizedBox(width: 18),
+        _itemLeyenda(Colors.red.shade300, "Caducado"),
+      ],
+    );
+  }
+
+  Widget _itemLeyenda(Color color, String texto) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          texto,
+          style: const TextStyle(
+            fontSize: 13,
+            color: Colors.black54,
+          ),
+        ),
+      ],
+    );
+  }
+
+  double _calcularMaxY(List<Map<String, dynamic>> items) {
+    double maxValue = 1;
+
+    for (final item in items) {
+      final compras = _toDouble(item['compras']);
+      final caducados = _toDouble(item['caducados']);
+
+      maxValue = max(maxValue, compras);
+      maxValue = max(maxValue, caducados);
+    }
+
+    return maxValue + 1;
+  }
+
+  int _toInt(dynamic value) {
+    if (value == null) return 0;
+
+    if (value is int) return value;
+
+    if (value is double) return value.toInt();
+
+    return int.tryParse(value.toString()) ?? 0;
+  }
+
+  double _toDouble(dynamic value) {
+    if (value == null) return 0;
+
+    if (value is int) return value.toDouble();
+
+    if (value is double) return value;
+
+    return double.tryParse(value.toString()) ?? 0;
+  }
+
   Widget _error(Object error) {
     return Center(
       child: Padding(
@@ -195,10 +456,17 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
             }
 
             final data = snapshot.data ?? {};
+
             final resumen = Map<String, dynamic>.from(data['resumen'] ?? {});
             final masComprados = List.from(data['mas_comprados'] ?? []);
-            final rapido = List.from(data['consumo_rapido'] ?? []);
-            final lento = List.from(data['consumo_lento'] ?? []);
+
+            final insights = List.from(
+              data['insights'] ??
+                  data['consejos_compra'] ??
+                  data['consumo_productos'] ??
+                  [],
+            );
+
             final recomendacion =
                 data['recomendacion']?.toString() ??
                     "Aún no hay suficientes datos para generar recomendaciones.";
@@ -213,11 +481,38 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Productos registrados: ${resumen['total_productos'] ?? 0}"),
+                      Text(
+                        "Productos registrados: ${resumen['total_productos'] ?? 0}",
+                      ),
                       const SizedBox(height: 6),
-                      Text("En inventario: ${resumen['productos_activos'] ?? 0}"),
+                      Text(
+                        "En inventario: ${resumen['productos_activos'] ?? 0}",
+                      ),
                       const SizedBox(height: 6),
-                      Text("Consumidos: ${resumen['productos_consumidos'] ?? 0}"),
+                      Text(
+                        "Consumidos: ${resumen['productos_consumidos'] ?? 0}",
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "Caducados: ${resumen['productos_caducados'] ?? 0}",
+                      ),
+                    ],
+                  ),
+                ),
+
+                _card(
+                  "Consejos de compra",
+                  _insightsCompra(insights),
+                ),
+
+                _card(
+                  "Compras vs caducados",
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _leyendaGrafico(),
+                      const SizedBox(height: 16),
+                      _graficoComprasCaducados(insights),
                     ],
                   ),
                 ),
@@ -225,16 +520,6 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
                 _card(
                   "Más comprados",
                   _lista(masComprados, "nombre", "veces", "veces"),
-                ),
-
-                _card(
-                  "Consumo rápido",
-                  _lista(rapido, "nombre", "dias_medios", "días"),
-                ),
-
-                _card(
-                  "Consumo lento",
-                  _lista(lento, "nombre", "dias_medios", "días"),
                 ),
 
                 _card(
