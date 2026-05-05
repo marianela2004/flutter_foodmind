@@ -16,6 +16,9 @@ class ConsumptionScreen extends StatefulWidget {
 class _ConsumptionScreenState extends State<ConsumptionScreen> {
   late Future<Map<String, dynamic>> _futureReporte;
 
+  String _filtroActual = 'todo';
+  DateTime? _fechaSeleccionada;
+
   static const Color verde = Color(0xFF527d5a);
   static const Color crema = Color(0xFFe9ddd4);
   static const Color fondo = Color(0xFFF8F6F2);
@@ -23,10 +26,16 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
   @override
   void initState() {
     super.initState();
-    _futureReporte = obtenerReporte();
+    _futureReporte = obtenerReporte(
+      filtro: _filtroActual,
+      fecha: _fechaSeleccionada,
+    );
   }
 
-  Future<Map<String, dynamic>> obtenerReporte() async {
+  Future<Map<String, dynamic>> obtenerReporte({
+    required String filtro,
+    DateTime? fecha,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final usuarioId = prefs.getInt('usuario_id');
 
@@ -34,13 +43,20 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
       throw Exception("No se encontró el usuario actual");
     }
 
+    final body = {
+      'usuario_id': usuarioId.toString(),
+      'filtro': filtro,
+    };
+
+    if (fecha != null) {
+      body['fecha'] = _formatearFechaApi(fecha);
+    }
+
     final response = await http.post(
       Uri.parse(
         'https://yost.es/SM-IT/2025-26/1B/website/mvp/reporte_consumo.php',
       ),
-      body: {
-        'usuario_id': usuarioId.toString(),
-      },
+      body: body,
     );
 
     final data = jsonDecode(response.body);
@@ -54,10 +70,174 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
 
   Future<void> recargarReporte() async {
     setState(() {
-      _futureReporte = obtenerReporte();
+      _futureReporte = obtenerReporte(
+        filtro: _filtroActual,
+        fecha: _fechaSeleccionada,
+      );
     });
 
     await _futureReporte;
+  }
+
+  void _cambiarFiltro(String filtro) {
+    setState(() {
+      _filtroActual = filtro;
+
+      if (filtro != 'fecha') {
+        _fechaSeleccionada = null;
+      }
+
+      _futureReporte = obtenerReporte(
+        filtro: _filtroActual,
+        fecha: _fechaSeleccionada,
+      );
+    });
+  }
+
+  Future<void> _elegirFecha() async {
+    final fecha = await showDatePicker(
+      context: context,
+      initialDate: _fechaSeleccionada ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: verde,
+              onPrimary: Colors.white,
+              onSurface: Colors.black87,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (fecha == null) return;
+
+    setState(() {
+      _filtroActual = 'fecha';
+      _fechaSeleccionada = fecha;
+      _futureReporte = obtenerReporte(
+        filtro: _filtroActual,
+        fecha: _fechaSeleccionada,
+      );
+    });
+  }
+
+  String _formatearFechaApi(DateTime fecha) {
+    return "${fecha.year.toString().padLeft(4, '0')}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}";
+  }
+
+  String _formatearFechaVista(DateTime fecha) {
+    return "${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}";
+  }
+
+  Widget _filtros() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _botonFiltro(
+              texto: "Todo",
+              filtro: "todo",
+              icono: Icons.all_inclusive_rounded,
+            ),
+            const SizedBox(width: 8),
+            _botonFiltro(
+              texto: "Última semana",
+              filtro: "semana",
+              icono: Icons.calendar_view_week_rounded,
+            ),
+            const SizedBox(width: 8),
+            _botonFiltro(
+              texto: "Último mes",
+              filtro: "mes",
+              icono: Icons.calendar_month_rounded,
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _elegirFecha,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: _filtroActual == 'fecha' ? verde : Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: _filtroActual == 'fecha' ? verde : crema,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.event_rounded,
+                      size: 18,
+                      color: _filtroActual == 'fecha' ? Colors.white : verde,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _fechaSeleccionada == null
+                          ? "Fecha"
+                          : _formatearFechaVista(_fechaSeleccionada!),
+                      style: TextStyle(
+                        color:
+                            _filtroActual == 'fecha' ? Colors.white : verde,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _botonFiltro({
+    required String texto,
+    required String filtro,
+    required IconData icono,
+  }) {
+    final seleccionado = _filtroActual == filtro;
+
+    return GestureDetector(
+      onTap: () => _cambiarFiltro(filtro),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: seleccionado ? verde : Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: seleccionado ? verde : crema,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icono,
+              size: 18,
+              color: seleccionado ? Colors.white : verde,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              texto,
+              style: TextStyle(
+                color: seleccionado ? Colors.white : verde,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _card(String titulo, Widget contenido) {
@@ -475,6 +655,8 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
                 const SizedBox(height: 14),
+
+                _filtros(),
 
                 _card(
                   "Resumen",

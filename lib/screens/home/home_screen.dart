@@ -87,7 +87,8 @@ class MoreScreen extends StatelessWidget {
         iconTheme: const IconThemeData(color: verde),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
@@ -169,10 +170,13 @@ class MoreScreen extends StatelessWidget {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const ConsumptionScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const ConsumptionScreen(),
+                    ),
                   );
                 },
               ),
+
               _MoreItem(
                 icon: Icons.favorite,
                 title: "Favoritos",
@@ -180,10 +184,13 @@ class MoreScreen extends StatelessWidget {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const FavoritesScreen(),
+                    ),
                   );
                 },
               ),
+
               _MoreItem(
                 icon: Icons.settings,
                 title: "Ajustes",
@@ -191,12 +198,14 @@ class MoreScreen extends StatelessWidget {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const SettingsScreen(),
+                    ),
                   );
                 },
               ),
 
-              const Spacer(),
+              const SizedBox(height: 28),
 
               // AVISO LEGAL
               Container(
@@ -228,7 +237,7 @@ class MoreScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 28),
             ],
           ),
         ),
@@ -271,8 +280,10 @@ class _MoreItem extends StatelessWidget {
         ],
       ),
       child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 10,
+        ),
         leading: Container(
           width: 44,
           height: 44,
@@ -297,8 +308,10 @@ class _MoreItem extends StatelessWidget {
             color: Color(0xFF6A6A6A),
           ),
         ),
-        trailing:
-            const Icon(Icons.chevron_right_rounded, color: marron),
+        trailing: const Icon(
+          Icons.chevron_right_rounded,
+          color: marron,
+        ),
         onTap: onTap,
       ),
     );
