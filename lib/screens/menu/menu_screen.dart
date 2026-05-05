@@ -14,7 +14,7 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> {
   bool loading = true;
   Map<String, dynamic> sugerencias = {};
-  Set<String> favoritos = {}; // 🔥 clave: tipo+texto
+  Set<String> favoritos = {};
 
   @override
   void initState() {
@@ -23,6 +23,9 @@ class _MenuScreenState extends State<MenuScreen> {
     cargarFavoritos();
   }
 
+  // =========================
+  // 📡 API MENU
+  // =========================
   Future<void> cargarMenu() async {
     final prefs = await SharedPreferences.getInstance();
     final usuarioId = prefs.getInt('usuario_id') ?? 0;
@@ -45,6 +48,9 @@ class _MenuScreenState extends State<MenuScreen> {
     }
   }
 
+  // =========================
+  // ⭐ FAVORITOS
+  // =========================
   Future<void> cargarFavoritos() async {
     final prefs = await SharedPreferences.getInstance();
     final usuarioId = prefs.getInt('usuario_id') ?? 0;
@@ -96,6 +102,115 @@ class _MenuScreenState extends State<MenuScreen> {
     });
   }
 
+  // =========================
+  // 🍽️ DETALLE RECETA
+  // =========================
+  void mostrarDetalleReceta(String tipo, Map receta) {
+    const verde = Color(0xFF527d5a);
+    const crema = Color(0xFFe9ddd4);
+    const mostaza = Color(0xFFD4A373);
+    const marron = Color(0xFF6A4E3B);
+
+    final titulo = receta["titulo"] ?? "Sin nombre";
+    final pasos = (receta["pasos"] ?? []) as List;
+
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: verde,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: crema.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: List.generate(pasos.length, (i) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Text(
+                          "Paso ${i + 1}: ${pasos[i]}",
+                          style: const TextStyle(
+                            fontSize: 14.5,
+                            height: 1.4,
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: mostaza.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.lightbulb_outline,
+                          size: 18, color: marron),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Sigue los pasos en orden y adapta cantidades según necesidad.",
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: marron,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      "Cerrar",
+                      style: TextStyle(color: verde),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // =========================
+  // 🧾 UI PRINCIPAL
+  // =========================
   @override
   Widget build(BuildContext context) {
     const verde = Color(0xFF527d5a);
@@ -103,71 +218,83 @@ class _MenuScreenState extends State<MenuScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6F2),
-      appBar: AppBar(
-  title: const Text(
-    "Menú diario",
-    style: TextStyle(
-      fontSize: 22,
-      fontWeight: FontWeight.w600,
-      color: verde,
-    ),
-  ),
-  backgroundColor: Colors.transparent,
-  elevation: 0,
-  centerTitle: true,
 
-  actions: [
-    Padding(
-      padding: const EdgeInsets.only(right: 12),
-      child: GestureDetector(
-onTap: () {
-  showDialog(
-    context: context,
-    barrierColor: Colors.black.withOpacity(0.3), // fondo oscuro
-    builder: (_) => const Chatbot(),
-  );
-},
-        child: Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: verde, width: 2),
-          ),
-          child: const CircleAvatar(
-            radius: 16,
-            backgroundImage: AssetImage('assets/images/cocinia.png'),
+      appBar: AppBar(
+        title: const Text(
+          "Menú diario",
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: verde,
           ),
         ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  barrierColor: Colors.black.withOpacity(0.3),
+                  builder: (_) => const Chatbot(),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: verde, width: 2),
+                ),
+                child: const CircleAvatar(
+                  radius: 16,
+                  backgroundImage: AssetImage('assets/images/cocinia.png'),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
-    ),
-  ],
-),
+
       body: loading
           ? const Center(child: CircularProgressIndicator(color: verde))
           : Padding(
               padding: const EdgeInsets.all(24),
               child: ListView(
                 children: [
-                  _cardComida("desayuno", "Desayuno",
-                      sugerencias["desayuno"] ?? "No disponible"),
-                  _cardComida("comida", "Comida",
-                      sugerencias["comida"] ?? "No disponible"),
-                  _cardComida("merienda", "Merienda",
-                      sugerencias["merienda"] ?? "No disponible"),
-                  _cardComida("cena", "Cena",
-                      sugerencias["cena"] ?? "No disponible"),
+                  _card("desayuno", "Desayuno"),
+                  _card("comida", "Comida"),
+                  _card("merienda", "Merienda"),
+                  _card("cena", "Cena"),
                 ],
               ),
             ),
     );
   }
 
-  Widget _cardComida(String tipo, String titulo, String texto) {
+  // =========================
+  // 🍽️ CARD
+  // =========================
+  Widget _card(String tipo, String titulo) {
     const verde = Color(0xFF527d5a);
     const crema = Color(0xFFe9ddd4);
 
-    final key = "$tipo|$texto";
+    final data = sugerencias[tipo];
+
+    final key = "$tipo|${data.toString()}";
     final isFav = favoritos.contains(key);
+
+    if (data == null) {
+      return const SizedBox();
+    }
+
+    final receta = data is Map ? data : {
+      "titulo": data.toString(),
+      "pasos": ["Receta no estructurada desde IA"]
+    };
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -179,21 +306,29 @@ onTap: () {
       ),
       child: Row(
         children: [
+
           Icon(_icon(tipo), color: verde, size: 30),
           const SizedBox(width: 16),
 
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(titulo,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => mostrarDetalleReceta(tipo, receta),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titulo,
                     style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 17,
-                        color: verde)),
-                const SizedBox(height: 8),
-                Text(texto),
-              ],
+                      fontWeight: FontWeight.w600,
+                      fontSize: 17,
+                      color: verde,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(receta["titulo"].toString()),
+                ],
+              ),
             ),
           ),
 
@@ -202,8 +337,8 @@ onTap: () {
               isFav ? Icons.favorite : Icons.favorite_border,
               color: isFav ? Colors.red : verde,
             ),
-            onPressed: () => toggleFavorito(tipo, texto),
-          )
+            onPressed: () => toggleFavorito(tipo, receta.toString()),
+          ),
         ],
       ),
     );
