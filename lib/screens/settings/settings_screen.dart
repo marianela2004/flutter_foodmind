@@ -105,7 +105,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6F2),
 
-      // ⭐⭐⭐ AQUI VA LA FLECHA DE VOLVER ⭐⭐⭐
       appBar: AppBar(
         automaticallyImplyLeading: true,
         leading: IconButton(
