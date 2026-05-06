@@ -24,10 +24,18 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   // =========================
-  // 📡 API MENU
+  // 📡 MENU
   // =========================
   Future<void> cargarMenu() async {
     final prefs = await SharedPreferences.getInstance();
+    final cache = prefs.getString("menu_cache");
+
+    if (cache != null) {
+      sugerencias = jsonDecode(cache);
+      setState(() => loading = false);
+      return;
+    }
+
     final usuarioId = prefs.getInt('usuario_id') ?? 0;
 
     final url = Uri.parse(
@@ -39,13 +47,12 @@ class _MenuScreenState extends State<MenuScreen> {
     });
 
     if (response.statusCode == 200) {
-      setState(() {
-        sugerencias = jsonDecode(response.body);
-        loading = false;
-      });
-    } else {
-      setState(() => loading = false);
+      sugerencias = jsonDecode(response.body);
+
+      await prefs.setString("menu_cache", jsonEncode(sugerencias));
     }
+
+    setState(() => loading = false);
   }
 
   // =========================
@@ -65,6 +72,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
+
       if (data["ok"]) {
         setState(() {
           favoritos = (data["favoritos"] as List)
@@ -94,16 +102,29 @@ class _MenuScreenState extends State<MenuScreen> {
     });
 
     setState(() {
-      if (isFav) {
-        favoritos.remove(key);
-      } else {
-        favoritos.add(key);
-      }
+      isFav ? favoritos.remove(key) : favoritos.add(key);
     });
   }
 
   // =========================
-  // 🍽️ DETALLE RECETA
+  // 🧠 PARSER SEGURO
+  // =========================
+  Map parseReceta(dynamic data) {
+    if (data is Map) {
+      return {
+        "titulo": data["titulo"] ?? "",
+        "pasos": List<String>.from(data["pasos"] ?? [])
+      };
+    }
+
+    return {
+      "titulo": data.toString(),
+      "pasos": []
+    };
+  }
+
+  // =========================
+  // 🍽️ POPUP (TU DISEÑO RESTAURADO)
   // =========================
   void mostrarDetalleReceta(String tipo, Map receta) {
     const verde = Color(0xFF527d5a);
@@ -111,8 +132,8 @@ class _MenuScreenState extends State<MenuScreen> {
     const mostaza = Color(0xFFD4A373);
     const marron = Color(0xFF6A4E3B);
 
-    final titulo = receta["titulo"] ?? "Sin nombre";
-    final pasos = (receta["pasos"] ?? []) as List;
+    final titulo = receta["titulo"] ?? "";
+    final pasos = receta["pasos"] ?? [];
 
     showDialog(
       context: context,
@@ -122,86 +143,86 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
 
-                Text(
-                  titulo,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: verde,
-                  ),
+              // 🔥 TU TÍTULO
+              Text(
+                titulo,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: verde,
                 ),
+              ),
 
-                const SizedBox(height: 18),
+              const SizedBox(height: 18),
 
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: crema.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: List.generate(pasos.length, (i) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(
-                          "Paso ${i + 1}: ${pasos[i]}",
-                          style: const TextStyle(
-                            fontSize: 14.5,
-                            height: 1.4,
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
+              // 🔥 PASOS
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: crema.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-
-                const SizedBox(height: 16),
-
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: mostaza.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.lightbulb_outline,
-                          size: 18, color: marron),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "Sigue los pasos en orden y adapta cantidades según necesidad.",
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: marron,
-                          ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: List.generate(pasos.length, (i) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        "Paso ${i + 1}: ${pasos[i]}",
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          height: 1.4,
                         ),
                       ),
-                    ],
-                  ),
+                    );
+                  }),
                 ),
+              ),
 
-                const SizedBox(height: 18),
+              const SizedBox(height: 16),
 
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      "Cerrar",
-                      style: TextStyle(color: verde),
+              // 🔥 CONSEJO
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: mostaza.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.lightbulb_outline,
+                        size: 18, color: marron),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "Sigue los pasos en orden y adapta cantidades según necesidad.",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: marron,
+                        ),
+                      ),
                     ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "Cerrar",
+                    style: TextStyle(color: verde),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -209,12 +230,11 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   // =========================
-  // 🧾 UI PRINCIPAL
+  // 🧾 UI
   // =========================
   @override
   Widget build(BuildContext context) {
     const verde = Color(0xFF527d5a);
-    const crema = Color(0xFFe9ddd4);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6F2),
@@ -223,7 +243,6 @@ class _MenuScreenState extends State<MenuScreen> {
         title: const Text(
           "Menú diario",
           style: TextStyle(
-            fontSize: 22,
             fontWeight: FontWeight.w600,
             color: verde,
           ),
@@ -244,7 +263,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 );
               },
               child: Container(
-                padding: const EdgeInsets.all(2),
+                padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: verde, width: 2),
@@ -260,7 +279,7 @@ class _MenuScreenState extends State<MenuScreen> {
       ),
 
       body: loading
-          ? const Center(child: CircularProgressIndicator(color: verde))
+          ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(24),
               child: ListView(
@@ -283,18 +302,12 @@ class _MenuScreenState extends State<MenuScreen> {
     const crema = Color(0xFFe9ddd4);
 
     final data = sugerencias[tipo];
+    if (data == null) return const SizedBox();
 
-    final key = "$tipo|${data.toString()}";
+    final receta = parseReceta(data);
+
+    final key = "$tipo|${receta.toString()}";
     final isFav = favoritos.contains(key);
-
-    if (data == null) {
-      return const SizedBox();
-    }
-
-    final receta = data is Map ? data : {
-      "titulo": data.toString(),
-      "pasos": ["Receta no estructurada desde IA"]
-    };
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -302,17 +315,16 @@ class _MenuScreenState extends State<MenuScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: crema, width: 1.2),
+        border: Border.all(color: crema),
       ),
       child: Row(
         children: [
 
-          Icon(_icon(tipo), color: verde, size: 30),
+          Icon(_icon(tipo), color: verde),
           const SizedBox(width: 16),
 
           Expanded(
             child: InkWell(
-              borderRadius: BorderRadius.circular(16),
               onTap: () => mostrarDetalleReceta(tipo, receta),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,11 +333,10 @@ class _MenuScreenState extends State<MenuScreen> {
                     titulo,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 17,
+                      fontSize: 18,
                       color: verde,
                     ),
                   ),
-                  const SizedBox(height: 8),
                   Text(receta["titulo"].toString()),
                 ],
               ),
