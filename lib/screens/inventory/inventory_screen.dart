@@ -80,6 +80,40 @@ Future<void> obtenerNombreUsuario() async {
     return await obtenerDespensa();
   }
 
+  Future<void> cambiarEstadoCaducidadManual(String id, String estado) async {
+  final prefs = await SharedPreferences.getInstance();
+  final usuarioId = prefs.getInt('usuario_id');
+
+  if (usuarioId == null) return;
+
+  final response = await http.post(
+    Uri.parse(
+      'https://yost.es/SM-IT/2025-26/1B/website/mvp/cambiar_estado_caducidad.php',
+    ),
+    body: {
+      'id': id,
+      'usuario_id': usuarioId.toString(),
+      'estado_caducidad': estado,
+    },
+  );
+
+  final data = jsonDecode(response.body);
+
+  if (data['ok'] == true) {
+    setState(() {
+      _futureDespensa = obtenerDespensa();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Estado de caducidad actualizado')),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(data['error'] ?? 'Error al actualizar estado')),
+    );
+  }
+}
+
   Future<void> actualizarCaducidadTodos() async {
     final prefs = await SharedPreferences.getInstance();
     final usuarioId = prefs.getInt('usuario_id');
@@ -425,27 +459,33 @@ Future<void> obtenerNombreUsuario() async {
     );
   }
 
-  Color obtenerColorCaducidad(String estado) {
-    switch (estado) {
-      case 'rojo':
-        return Colors.red;
-      case 'amarillo':
-        return Colors.orange;
-      default:
-        return Colors.green;
-    }
-  }
+Color obtenerColorCaducidad(String estado) {
+  final estadoBase = estado.replaceAll('_manual', '');
 
-  String obtenerTextoCaducidad(String estado) {
-    switch (estado) {
-      case 'rojo':
-        return 'Revisar ya';
-      case 'amarillo':
-        return 'Consumir pronto';
-      default:
-        return 'Fresco';
-    }
+  switch (estadoBase) {
+    case 'rojo':
+      return Colors.red;
+    case 'amarillo':
+      return Colors.orange;
+    default:
+      return Colors.green;
   }
+}
+
+String obtenerTextoCaducidad(String estado) {
+  final estadoBase = estado.replaceAll('_manual', '');
+
+  switch (estadoBase) {
+    case 'rojo':
+      return 'Revisar ya';
+
+    case 'amarillo':
+      return 'Consumir pronto';
+
+    default:
+      return 'Fresco';
+  }
+}
 
   String limpiarValor(dynamic value) {
     final texto = (value ?? '').toString();
@@ -922,6 +962,126 @@ Future<void> obtenerNombreUsuario() async {
                                     ),
                                   ),
                                   const SizedBox(height: 18),
+const Text(
+  'Corregir estado manualmente',
+  style: TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+    color: verde,
+  ),
+),
+
+const SizedBox(height: 12),
+
+Wrap(
+  spacing: 10,
+  runSpacing: 10,
+  children: [
+
+    SizedBox(
+      width: 115,
+      height: 44,
+      child: ElevatedButton(
+        onPressed: () async {
+          Navigator.pop(context);
+
+          await cambiarEstadoCaducidadManual(
+            item['id'].toString(),
+            'verde_manual',
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: const Text(
+          'Fresco',
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.fade,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    ),
+
+    SizedBox(
+      width: 115,
+      height: 44,
+      child: ElevatedButton(
+        onPressed: () async {
+          Navigator.pop(context);
+
+          await cambiarEstadoCaducidadManual(
+            item['id'].toString(),
+            'amarillo_manual',
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: const Text(
+          'Pronto',
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.fade,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    ),
+
+    SizedBox(
+      width: 115,
+      height: 44,
+      child: ElevatedButton(
+        onPressed: () async {
+          Navigator.pop(context);
+
+          await cambiarEstadoCaducidadManual(
+            item['id'].toString(),
+            'rojo_manual',
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: const Text(
+          'Revisar',
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.fade,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    ),
+
+  ],
+),              const SizedBox(height: 18),
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: TextButton(
