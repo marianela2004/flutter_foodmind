@@ -13,6 +13,7 @@ class InventoryScreen extends StatefulWidget {
 
 class _InventoryScreenState extends State<InventoryScreen> {
   late Future<List> _futureDespensa;
+  String? nombreUsuario;
 
   static const Color verde = Color(0xFF527d5a);
   static const Color crema = Color(0xFFe9ddd4);
@@ -21,11 +22,44 @@ class _InventoryScreenState extends State<InventoryScreen> {
   static const Color fondo = Color(0xFFF8F6F2);
 
   @override
-  void initState() {
-    super.initState();
-    _futureDespensa = obtenerDespensa();
-    _actualizarCaducidadEnSegundoPlano();
-  }
+void initState() {
+  super.initState();
+  _futureDespensa = obtenerDespensa();
+  obtenerNombreUsuario();
+  _actualizarCaducidadEnSegundoPlano();
+}
+
+Future<void> obtenerNombreUsuario() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final usuarioId = prefs.getInt('usuario_id');
+
+    if (usuarioId == null) return;
+
+    final response = await http.post(
+      Uri.parse(
+        'https://yost.es/SM-IT/2025-26/1B/website/mvp/obtener_usuario.php',
+      ),
+      body: {
+        'usuario_id': usuarioId.toString(),
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data['ok'] == true) {
+        final nombre = (data['nombre'] ?? '').toString().trim();
+
+        if (!mounted) return;
+
+        setState(() {
+          nombreUsuario = nombre.isEmpty ? null : nombre;
+        });
+      }
+    }
+  } catch (_) {}
+}
 
   Future<void> _actualizarCaducidadEnSegundoPlano() async {
     try {
@@ -995,14 +1029,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
-          title: const Text(
-            "Inventario",
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-              color: verde,
-            ),
-          ),
+          title: Text(
+  nombreUsuario != null && nombreUsuario!.isNotEmpty
+      ? "Inventario de $nombreUsuario"
+      : "Inventario",
+  style: const TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w600,
+    color: verde,
+  ),
+),
           centerTitle: true,
           actions: [
             IconButton(

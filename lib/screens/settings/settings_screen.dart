@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
-import '../onboarding/pack_screen.dart';
 import '../onboarding/diet_screen.dart';
 import '../onboarding/allergies_screen.dart';
 import '../onboarding/dislikes_screen.dart';
-import '../../widgets/primary_button.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -35,16 +33,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> cargarDatos() async {
     final prefs = await SharedPreferences.getInstance();
+    final usuarioId = prefs.getInt('usuario_id');
+
+    String nombreLocal = prefs.getString('nombre_usuario') ?? '';
+    String packLocal = prefs.getString('numero_pack') ?? '';
+    String dietaLocal = prefs.getString('dieta_usuario') ?? '';
+
+    List<String> alergiasLocal = List<String>.from(
+      jsonDecode(prefs.getString('alergias_usuario') ?? '[]'),
+    );
+
+    List<String> dislikesLocal = List<String>.from(
+      jsonDecode(prefs.getString('dislikes_usuario') ?? '[]'),
+    );
+
+    if (usuarioId != null) {
+      try {
+        final response = await http.post(
+          Uri.parse(
+            'https://yost.es/SM-IT/2025-26/1B/website/mvp/obtener_usuario.php',
+          ),
+          body: {
+            'usuario_id': usuarioId.toString(),
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          if (data['ok'] == true) {
+            nombreLocal = (data['nombre'] ?? '').toString();
+            packLocal = (data['numero_pack'] ?? '').toString();
+            dietaLocal = (data['tipo_dieta'] ?? '').toString();
+
+            alergiasLocal = List<String>.from(
+              jsonDecode((data['alergias'] ?? '[]').toString()),
+            );
+
+            dislikesLocal = List<String>.from(
+              jsonDecode((data['no_gustan'] ?? '[]').toString()),
+            );
+
+            await prefs.setString('nombre_usuario', nombreLocal);
+            await prefs.setString('numero_pack', packLocal);
+            await prefs.setString('dieta_usuario', dietaLocal);
+            await prefs.setString('alergias_usuario', jsonEncode(alergiasLocal));
+            await prefs.setString('dislikes_usuario', jsonEncode(dislikesLocal));
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
 
     setState(() {
-      nombre = prefs.getString('nombre_usuario') ?? '';
-      pack = prefs.getString('numero_pack') ?? '';
-      dieta = prefs.getString('dieta_usuario') ?? '';
-      alergias = List<String>.from(
-          jsonDecode(prefs.getString('alergias_usuario') ?? '[]'));
-      dislikes = List<String>.from(
-          jsonDecode(prefs.getString('dislikes_usuario') ?? '[]'));
-
+      nombre = nombreLocal;
+      pack = packLocal;
+      dieta = dietaLocal;
+      alergias = alergiasLocal;
+      dislikes = dislikesLocal;
       nombreController.text = nombre;
     });
   }
@@ -53,9 +100,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     final usuarioId = prefs.getInt('usuario_id');
 
+    if (usuarioId == null) return;
+
     await http.post(
       Uri.parse(
-          'https://yost.es/SM-IT/2025-26/1B/website/mvp/guardar_usuario.php'),
+        'https://yost.es/SM-IT/2025-26/1B/website/mvp/guardar_usuario.php',
+      ),
       body: {
         'usuario_id': usuarioId.toString(),
         'nombre': nombre,
@@ -67,7 +117,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // ⭐ FORMATEAR DIETA
+  Future<void> limpiarCacheMenu() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.remove("menu_cache");
+    await prefs.remove("menu_cache_fecha");
+    await prefs.remove("menu_cache_preferencias");
+  }
+
+  Future<void> actualizarPreferenciasTrasEditar() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final nombreNuevo = prefs.getString('nombre_usuario') ?? nombre;
+    final packNuevo = prefs.getString('numero_pack') ?? pack;
+    final dietaNueva = prefs.getString('dieta_usuario') ?? dieta;
+
+    final alergiasNuevas = List<String>.from(
+      jsonDecode(prefs.getString('alergias_usuario') ?? '[]'),
+    );
+
+    final dislikesNuevos = List<String>.from(
+      jsonDecode(prefs.getString('dislikes_usuario') ?? '[]'),
+    );
+
+    setState(() {
+      nombre = nombreNuevo;
+      pack = packNuevo;
+      dieta = dietaNueva;
+      alergias = alergiasNuevas;
+      dislikes = dislikesNuevos;
+      nombreController.text = nombre;
+    });
+
+    await guardarEnServidor();
+    await limpiarCacheMenu();
+  }
+
   String formatearDieta(String dietaRaw) {
     if (dietaRaw.trim().isEmpty) return 'No configurado';
 
@@ -104,7 +189,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6F2),
-
       appBar: AppBar(
         automaticallyImplyLeading: true,
         leading: IconButton(
@@ -123,12 +207,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         elevation: 0,
         centerTitle: true,
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: ListView(
           children: [
-            // ICONO
             Center(
               child: Stack(
                 alignment: Alignment.center,
@@ -169,10 +251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
-
-            // NOMBRE
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -190,9 +269,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Nombre",
-                      style:
-                          TextStyle(color: verde, fontWeight: FontWeight.w600)),
+                  const Text(
+                    "Nombre",
+                    style: TextStyle(
+                      color: verde,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -203,8 +286,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: crema.withOpacity(0.55),
-                            prefixIcon:
-                                const Icon(Icons.person, color: verde),
+                            prefixIcon: const Icon(Icons.person, color: verde),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                               borderSide: BorderSide.none,
@@ -221,14 +303,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             return;
                           }
 
-                          final prefs =
-                              await SharedPreferences.getInstance();
+                          final prefs = await SharedPreferences.getInstance();
+                          nombre = nombreController.text.trim();
+
                           await prefs.setString('nombre_usuario', nombre);
                           await guardarEnServidor();
 
+                          if (!mounted) return;
+
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text("Nombre guardado")),
+                            const SnackBar(content: Text("Nombre guardado")),
                           );
 
                           setState(() => editingNombre = false);
@@ -237,7 +321,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           backgroundColor: verde,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 14),
+                            horizontal: 18,
+                            vertical: 14,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -249,10 +335,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
-
-            // PACK (NO EDITABLE)
             _tile(
               titulo: "Código pack",
               valor: pack,
@@ -260,8 +343,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               editable: false,
               onTap: () {},
             ),
-
-            // DIETA (FORMATEADA)
             _tile(
               titulo: "Dieta",
               valor: formatearDieta(dieta),
@@ -276,11 +357,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 );
-                cargarDatos();
-                guardarEnServidor();
+
+                await actualizarPreferenciasTrasEditar();
               },
             ),
-
             _tile(
               titulo: "Alergias",
               valor: alergias.join(", "),
@@ -296,11 +376,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 );
-                cargarDatos();
-                guardarEnServidor();
+
+                await actualizarPreferenciasTrasEditar();
               },
             ),
-
             _tile(
               titulo: "Productos que no gustan",
               valor: dislikes.join(", "),
@@ -317,8 +396,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 );
-                cargarDatos();
-                guardarEnServidor();
+
+                await actualizarPreferenciasTrasEditar();
               },
             ),
           ],
@@ -327,7 +406,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // TILE MODIFICADO
   Widget _tile({
     required String titulo,
     required String valor,
@@ -380,8 +458,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             if (editable)
-              const Icon(Icons.arrow_forward_ios_rounded,
-                  size: 16, color: verde),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: verde,
+              ),
           ],
         ),
       ),

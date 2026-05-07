@@ -19,20 +19,55 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   void initState() {
     super.initState();
-    cargarMenu();
-    cargarFavoritos();
+    cargarDatosIniciales();
   }
 
-  // =========================
-  // 📡 MENU
-  // =========================
-  Future<void> cargarMenu() async {
-    final prefs = await SharedPreferences.getInstance();
-    final cache = prefs.getString("menu_cache");
+  Future<void> cargarDatosIniciales() async {
+    await Future.wait([
+      cargarMenu(),
+      cargarFavoritos(),
+    ]);
 
-    if (cache != null) {
+    if (!mounted) return;
+    setState(() => loading = false);
+  }
+
+  String _fechaHoyClave() {
+    final hoy = DateTime.now();
+    return "${hoy.year}-${hoy.month.toString().padLeft(2, '0')}-${hoy.day.toString().padLeft(2, '0')}";
+  }
+
+  Future<String> _clavePreferencias() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final dieta = prefs.getString('dieta_usuario') ?? '';
+    final alergias = prefs.getString('alergias_usuario') ?? '[]';
+    final dislikes = prefs.getString('dislikes_usuario') ?? '[]';
+    final pack = prefs.getString('numero_pack') ?? '';
+
+    return jsonEncode({
+      "pack": pack,
+      "dieta": dieta,
+      "alergias": alergias,
+      "dislikes": dislikes,
+    });
+  }
+
+  Future<void> cargarMenu({bool forzarRecarga = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final hoy = _fechaHoyClave();
+    final preferenciasActuales = await _clavePreferencias();
+
+    final cache = prefs.getString("menu_cache");
+    final cacheFecha = prefs.getString("menu_cache_fecha");
+    final cachePreferencias = prefs.getString("menu_cache_preferencias");
+
+    if (!forzarRecarga &&
+        cache != null &&
+        cacheFecha == hoy &&
+        cachePreferencias == preferenciasActuales) {
       sugerencias = jsonDecode(cache);
-      setState(() => loading = false);
       return;
     }
 
@@ -44,20 +79,28 @@ class _MenuScreenState extends State<MenuScreen> {
 
     final response = await http.post(url, body: {
       "usuario_id": usuarioId.toString(),
+      "fecha": hoy,
     });
 
     if (response.statusCode == 200) {
       sugerencias = jsonDecode(response.body);
 
       await prefs.setString("menu_cache", jsonEncode(sugerencias));
+      await prefs.setString("menu_cache_fecha", hoy);
+      await prefs.setString("menu_cache_preferencias", preferenciasActuales);
     }
+  }
 
+  Future<void> recargarMenuManual() async {
+    setState(() => loading = true);
+
+    await cargarMenu(forzarRecarga: true);
+    await cargarFavoritos();
+
+    if (!mounted) return;
     setState(() => loading = false);
   }
 
-  // =========================
-  // ⭐ FAVORITOS
-  // =========================
   Future<void> cargarFavoritos() async {
     final prefs = await SharedPreferences.getInstance();
     final usuarioId = prefs.getInt('usuario_id') ?? 0;
@@ -73,12 +116,10 @@ class _MenuScreenState extends State<MenuScreen> {
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
 
-      if (data["ok"]) {
-        setState(() {
-          favoritos = (data["favoritos"] as List)
-              .map((e) => "${e['tipo']}|${e['texto']}")
-              .toSet();
-        });
+      if (data["ok"] == true) {
+        favoritos = (data["favoritos"] as List)
+            .map((e) => "${e['tipo']}|${e['texto']}")
+            .toSet();
       }
     }
   }
@@ -106,9 +147,6 @@ class _MenuScreenState extends State<MenuScreen> {
     });
   }
 
-  // =========================
-  // 🧠 PARSER SEGURO
-  // =========================
   Map parseReceta(dynamic data) {
     if (data is Map) {
       return {
@@ -123,9 +161,6 @@ class _MenuScreenState extends State<MenuScreen> {
     };
   }
 
-  // =========================
-  // 🍽️ POPUP (TU DISEÑO RESTAURADO)
-  // =========================
   void mostrarDetalleReceta(String tipo, Map receta) {
     const verde = Color(0xFF527d5a);
     const crema = Color(0xFFe9ddd4);
@@ -143,102 +178,89 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-
-              // 🔥 TU TÍTULO
-              Text(
-                titulo,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: verde,
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // 🔥 PASOS
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: crema.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: List.generate(pasos.length, (i) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Text(
-                        "Paso ${i + 1}: ${pasos[i]}",
-                        style: const TextStyle(
-                          fontSize: 14.5,
-                          height: 1.4,
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // 🔥 CONSEJO
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: mostaza.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.lightbulb_outline,
-                        size: 18, color: marron),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        "Sigue los pasos en orden y adapta cantidades según necesidad.",
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: marron,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    "Cerrar",
-                    style: TextStyle(color: verde),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: verde,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: crema.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: List.generate(pasos.length, (i) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Text(
+                          "Paso ${i + 1}: ${pasos[i]}",
+                          style: const TextStyle(
+                            fontSize: 14.5,
+                            height: 1.4,
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: mostaza.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.lightbulb_outline, size: 18, color: marron),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Sigue los pasos en orden y adapta cantidades según necesidad.",
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: marron,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      "Cerrar",
+                      style: TextStyle(color: verde),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  // =========================
-  // 🧾 UI
-  // =========================
   @override
   Widget build(BuildContext context) {
     const verde = Color(0xFF527d5a);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6F2),
-
       appBar: AppBar(
         title: const Text(
           "Menú diario",
@@ -250,8 +272,12 @@ class _MenuScreenState extends State<MenuScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-
         actions: [
+          IconButton(
+            tooltip: "Recargar menú",
+            onPressed: recargarMenuManual,
+            icon: const Icon(Icons.refresh_rounded, color: verde),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: GestureDetector(
@@ -277,26 +303,33 @@ class _MenuScreenState extends State<MenuScreen> {
           ),
         ],
       ),
-
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(24),
-              child: ListView(
-                children: [
-                  _card("desayuno", "Desayuno"),
-                  _card("comida", "Comida"),
-                  _card("merienda", "Merienda"),
-                  _card("cena", "Cena"),
+      body: RefreshIndicator(
+        color: verde,
+        onRefresh: recargarMenuManual,
+        child: loading
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(height: 220),
+                  Center(child: CircularProgressIndicator(color: verde)),
                 ],
+              )
+            : Padding(
+                padding: const EdgeInsets.all(24),
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    _card("desayuno", "Desayuno"),
+                    _card("comida", "Comida"),
+                    _card("merienda", "Merienda"),
+                    _card("cena", "Cena"),
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
-  // =========================
-  // 🍽️ CARD
-  // =========================
   Widget _card(String tipo, String titulo) {
     const verde = Color(0xFF527d5a);
     const crema = Color(0xFFe9ddd4);
@@ -305,8 +338,9 @@ class _MenuScreenState extends State<MenuScreen> {
     if (data == null) return const SizedBox();
 
     final receta = parseReceta(data);
+    final textoFavorito = receta.toString();
 
-    final key = "$tipo|${receta.toString()}";
+    final key = "$tipo|$textoFavorito";
     final isFav = favoritos.contains(key);
 
     return Container(
@@ -319,10 +353,8 @@ class _MenuScreenState extends State<MenuScreen> {
       ),
       child: Row(
         children: [
-
           Icon(_icon(tipo), color: verde),
           const SizedBox(width: 16),
-
           Expanded(
             child: InkWell(
               onTap: () => mostrarDetalleReceta(tipo, receta),
@@ -337,18 +369,18 @@ class _MenuScreenState extends State<MenuScreen> {
                       color: verde,
                     ),
                   ),
+                  const SizedBox(height: 4),
                   Text(receta["titulo"].toString()),
                 ],
               ),
             ),
           ),
-
           IconButton(
             icon: Icon(
               isFav ? Icons.favorite : Icons.favorite_border,
               color: isFav ? Colors.red : verde,
             ),
-            onPressed: () => toggleFavorito(tipo, receta.toString()),
+            onPressed: () => toggleFavorito(tipo, textoFavorito),
           ),
         ],
       ),
