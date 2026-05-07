@@ -324,52 +324,58 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
   Widget _insightsCompra(List lista) {
     if (lista.isEmpty) {
       return const Text(
-        "Todavía no hay suficientes datos para darte consejos de compra.",
+        "Todavía no hay consejos de compra importantes.",
         style: TextStyle(color: Colors.black54),
       );
     }
 
-    return Column(
-      children: lista.map((e) {
-        final item = Map<String, dynamic>.from(e);
+    final widgets = <Widget>[];
 
-        final nombre = item['nombre']?.toString() ?? 'Producto';
-        final compras = _toInt(item['compras']);
-        final caducados = _toInt(item['caducados']);
-        final consumidos = _toInt(item['consumidos']);
+    for (final e in lista) {
+      final item = Map<String, dynamic>.from(e);
 
-        final bool problema = caducados > 0;
+      final nombre = item['nombre']?.toString() ?? 'Producto';
+      final compras = _toInt(item['compras']);
+      final caducados = _toInt(item['caducados']);
+      final consumidos = _toInt(item['consumidos']);
 
-        final mensaje = item['mensaje']?.toString() ??
-            _generarMensajeInsight(
-              nombre: nombre,
-              compras: compras,
-              caducados: caducados,
-              consumidos: consumidos,
-            );
+      final mensaje = item['mensaje']?.toString() ??
+          _generarMensajeInsight(
+            nombre: nombre,
+            compras: compras,
+            caducados: caducados,
+            consumidos: consumidos,
+          );
 
-        return Container(
+      final textoLower = mensaje.toLowerCase();
+
+      final sinDatos = textoLower.contains('no hay suficientes datos') ||
+          textoLower.contains('todavía no hay suficientes datos') ||
+          textoLower.contains('cuando haya más datos');
+
+      final problema = caducados > 0;
+
+      if (sinDatos || !problema) {
+        continue;
+      }
+
+      widgets.add(
+        Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: problema
-                ? Colors.red.withOpacity(0.08)
-                : verde.withOpacity(0.10),
+            color: Colors.red.withOpacity(0.08),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: problema
-                  ? Colors.red.withOpacity(0.25)
-                  : verde.withOpacity(0.20),
+              color: Colors.red.withOpacity(0.25),
             ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
-                problema
-                    ? Icons.warning_amber_rounded
-                    : Icons.check_circle_outline_rounded,
-                color: problema ? Colors.red.shade400 : verde,
+                Icons.warning_amber_rounded,
+                color: Colors.red.shade400,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -384,9 +390,18 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
               ),
             ],
           ),
-        );
-      }).toList(),
-    );
+        ),
+      );
+    }
+
+    if (widgets.isEmpty) {
+      return const Text(
+        "No hay avisos importantes por ahora.",
+        style: TextStyle(color: Colors.black54),
+      );
+    }
+
+    return Column(children: widgets);
   }
 
   String _generarMensajeInsight({
@@ -655,9 +670,7 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
                 const SizedBox(height: 14),
-
                 _filtros(),
-
                 _card(
                   "Resumen",
                   Column(
@@ -681,12 +694,10 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
                     ],
                   ),
                 ),
-
                 _card(
                   "Consejos de compra",
                   _insightsCompra(insights),
                 ),
-
                 _card(
                   "Compras vs caducados",
                   Column(
@@ -698,17 +709,14 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
                     ],
                   ),
                 ),
-
                 _card(
                   "Más comprados",
                   _lista(masComprados, "nombre", "veces", "veces"),
                 ),
-
                 _card(
                   "💡 Recomendación inteligente",
                   _recomendacion(recomendacion),
                 ),
-
                 const SizedBox(height: 30),
               ],
             );
