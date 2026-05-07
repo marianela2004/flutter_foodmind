@@ -184,17 +184,24 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     return Scaffold(
       backgroundColor: fondo,
       appBar: AppBar(
-        title: const Text(
-          "Favoritos",
-          style: TextStyle(
-            color: verde,
-            fontWeight: FontWeight.bold, 
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: verde),
-      ),
+  automaticallyImplyLeading: true,
+  leading: IconButton(
+    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: verde),
+    onPressed: () => Navigator.pop(context),
+  ),
+  title: const Text(
+    "Favoritos",
+    style: TextStyle(
+      fontSize: 22,
+      fontWeight: FontWeight.w600,
+      color: verde,
+    ),
+  ),
+  backgroundColor: Colors.transparent,
+  elevation: 0,
+  scrolledUnderElevation: 0,
+  centerTitle: true,
+),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
